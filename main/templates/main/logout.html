@@ -1,0 +1,12 @@
+{% extends 'main/base.html' %}
+{% load bootstrap3 %}
+{% block content %}
+    <div class="row">
+        <div class="col-md-4 col-md-offset-4">
+            <section class="lonely">
+                <h3>Sesión Finalizada</h3>
+                <div><a href="{% url 'main:login' %}">Volver a entrar</a></div>
+            </section>
+        </div>
+    </div>
+{% endblock %}

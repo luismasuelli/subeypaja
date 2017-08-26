@@ -1,0 +1,35 @@
+body {
+    padding-top: 66px;
+}
+
+section.lonely {
+    margin-top: 80px;
+}
+
+.with-margin-top {
+    margin-top: 1em;
+}
+
+.with-margin-bottom {
+    margin-bottom: 1em;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.form-inline label {
+    margin-right: 5px;
+}
+.form-inline label:not(:first-child) {
+    margin-left: 5px;
+}
+
+label + .form-group .checkbox {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.text-strong, .text-bold {
+    font-weight: bold;
+}

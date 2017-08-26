@@ -1,0 +1,22 @@
+{% load staticfiles %}
+{% load bootstrap3 %}
+<html>
+    <head>
+        <title>{{ SITE_TITLE }}</title>
+        {% bootstrap_css %}
+        <link rel="stylesheet" href="{% static 'main/styles/theme.min.css' %}" type="text/css" />
+        <link rel="stylesheet" href="{% static 'main/styles/subeypaja.css' %}" type="text/css" />
+        <script type="text/javascript" src="{% static 'main/scripts/jquery-1.12.3.min.js' %}"></script>
+        {% bootstrap_javascript %}
+        <script src="{% static 'main/scripts/async.js' %}" type="text/javascript"></script>
+        <script src="{% static 'main/scripts/cookie.js' %}" type="text/javascript"></script>
+        <script src="{% static 'main/scripts/subeypaja.js' %}" type="text/javascript"></script>
+        {% block css_header %}{% endblock %}
+        {% block js_header %}{% endblock %}
+    </head>
+    <body>
+        {% include 'main/menu.html' with user=user perms=perms site_title=SITE_TITLE only %}
+        {% block content %}{% endblock %}
+        {% block js_footer %}{% endblock %}
+    </body>
+</html>
