@@ -2,12 +2,11 @@
 from __future__ import unicode_literals
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
-from grimoire.django.tracked.models import TrackedLive, TrackedLiveQuerySet
-from polymorphic.models import PolymorphicModel, PolymorphicManager
-
-
-# Create your models here.
+from grimoire.django.tracked.models import TrackedLive
+from polymorphic.models import PolymorphicModel
+from six import python_2_unicode_compatible
 from main.embeds import AVAILABLE_EMBEDS_CHOICES, AVAILABLE_EMBEDS_ENGINES
 
 
@@ -37,6 +36,7 @@ class User(AbstractUser):
         return False
 
 
+@python_2_unicode_compatible
 class Tag(TrackedLive):
     """
     Categorías (tags) de fotos, videos, enlaces.
@@ -47,6 +47,9 @@ class Tag(TrackedLive):
     name = models.CharField(max_length=100, null=False, blank=False)
     code = models.CharField(max_length=50, null=False, blank=False, unique=True)
     special = models.BooleanField(default=False, null=False, blank=False)
+
+    def __str__(self):
+        return self.name
 
 
 MF_STATUSES = (
@@ -85,9 +88,13 @@ class MediaFile(PolymorphicModel):
     """
 
     uploaded_by = models.ForeignKey(User, null=False, blank=False)
+    title = models.CharField(max_length=100, null=False, blank=False)
     categories = models.ManyToManyField(Tag, related_name='media')
     status = models.CharField(max_length=10, choices=MF_STATUSES, null=False, blank=False)
     inspection_notes = models.TextField(max_length=2**24, null=True, blank=True)
+
+    def description(self):
+        return _('(Unknown media file type)')
 
 
 class MediaFileHistory(TrackedLive):
@@ -109,6 +116,9 @@ class Image(MediaFile):
 
     file = models.ImageField(upload_to='images', null=False, blank=False)
 
+    def description(self):
+        return mark_safe(_('Image - <a href="%s">see</a>') % self.file.url)
+
 
 class Embed(MediaFile):
     """
@@ -120,8 +130,16 @@ class Embed(MediaFile):
 
     def render(self):
         """
-        Invokes the render to get the appropriate HTML.
+        Invokes the engine's render to get the appropriate HTML.
         :return: The appropriate HTML.
         """
 
-        return AVAILABLE_EMBEDS_ENGINES[self.embed](self.content)
+        return AVAILABLE_EMBEDS_ENGINES[self.embed].render(self.content)
+
+    def description(self):
+        """
+        Invokes the engine's description to get the appropriate description.
+        :return: The appropriate description.
+        """
+
+        return AVAILABLE_EMBEDS_ENGINES[self.embed].description(self.content)
