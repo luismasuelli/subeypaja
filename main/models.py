@@ -5,6 +5,7 @@ from django.db import models
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from grimoire.django.tracked.models import TrackedLive
+from grimoire.django.tracked.models.polymorphic import TrackedLive as PolymorphicTrackedLive
 from polymorphic.models import PolymorphicModel
 from six import python_2_unicode_compatible
 from main.embeds import AVAILABLE_EMBEDS_CHOICES, AVAILABLE_EMBEDS_ENGINES
@@ -60,7 +61,7 @@ MF_STATUSES = (
 )
 
 
-class MediaFile(PolymorphicModel):
+class MediaFile(PolymorphicTrackedLive):
     """
     Medios. Estos pueden ser enlaces, fotos, videos.
 
