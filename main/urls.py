@@ -1,6 +1,8 @@
+from django.conf import settings
 from django.conf.urls import url
 from . import constants
 from . import views
+from django.conf.urls.static import static
 
 extra_context = {'SITE_TITLE': constants.SITE_TITLE}
 
@@ -52,4 +54,4 @@ urlpatterns = [
         template_name='main/logout.html',
         extra_context=extra_context
     ), name='logout'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
