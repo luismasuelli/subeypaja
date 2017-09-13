@@ -11,15 +11,15 @@ class UserAdmin(OriginalUserAdmin):
     pass
 
 
-class MediaFileAdmin(PolymorphicParentModelAdmin):
+class MediaAdmin(PolymorphicParentModelAdmin):
 
-    base_model = models.MediaFile
+    base_model = models.Media
     polymorphic_list = True
-    list_display = ['title', 'uploaded_by', 'status', 'description', 'serialized_categories']
+    list_display = ['created_on', 'title', 'uploaded_by', 'status', 'description', 'serialized_categories']
     list_display_links = ['title']
 
-    class MediaFileHistoryInlineAdmin(admin.TabularInline):
-        model = models.MediaFileHistory
+    class MediaHistoryInlineAdmin(admin.TabularInline):
+        model = models.MediaHistory
         fields = ('created_on', 'changed_by', 'status', 'details')
         readonly_fields = ('created_on', 'changed_by', 'status', 'details')
 
@@ -32,28 +32,33 @@ class MediaFileAdmin(PolymorphicParentModelAdmin):
         def has_delete_permission(self, request, obj=None):
             return False
 
-    inlines = [MediaFileHistoryInlineAdmin]
+    inlines = [MediaHistoryInlineAdmin]
 
     def serialized_categories(self, obj):
-        return ''.join([tag.name for tag in obj.categories.all()])
+        return ', '.join([tag.name for tag in obj.categories.all()])
     serialized_categories.short_description = _(u'Categories')
 
     class ImageAdmin(PolymorphicChildModelAdmin):
 
-        base_model = models.MediaFile
+        base_model = models.Media
 
     class EmbedAdmin(PolymorphicChildModelAdmin):
 
-        base_model = models.MediaFile
+        base_model = models.Media
+
+    class AlbumAdmin(PolymorphicChildModelAdmin):
+
+        base_model = models.Media
 
     # TODO logic for adding a new History when saving the object.
     # TODO this includes a distinct form with an additional field.
-    # TODO also deleting the inspection notes field in the MediaFile model.
+    # TODO also deleting the inspection notes field in the Media model.
 
     def get_child_models(self):
         return [
             (models.Image, self.ImageAdmin),
-            (models.Embed, self.EmbedAdmin)
+            (models.Embed, self.EmbedAdmin),
+            (models.Album, self.AlbumAdmin)
         ]
 
 
@@ -65,5 +70,5 @@ class TagAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.User, UserAdmin)
-admin.site.register(models.MediaFile, MediaFileAdmin)
+admin.site.register(models.Media, MediaAdmin)
 admin.site.register(models.Tag, TagAdmin)

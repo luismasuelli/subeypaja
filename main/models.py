@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from grimoire.django.tracked.models import TrackedLive
 from grimoire.django.tracked.models.polymorphic import TrackedLive as PolymorphicTrackedLive
-from polymorphic.models import PolymorphicModel
 from six import python_2_unicode_compatible
 from main.embeds import AVAILABLE_EMBEDS_CHOICES, AVAILABLE_EMBEDS_ENGINES
 
@@ -53,15 +53,17 @@ class Tag(TrackedLive):
         return self.name
 
 
+MF_STATUSES_ON_REVIEW = 'on_review'
+MF_STATUSES_AVAILABLE = 'available'
 MF_STATUSES = (
-    ('on_review', _('On Review')),
-    ('available', _('Available')),
+    (MF_STATUSES_ON_REVIEW, _('On Review')),
+    (MF_STATUSES_AVAILABLE, _('Available')),
     ('on_hold', _('On Hold / Reported')),
     ('banned', _('Banned'))
 )
 
 
-class MediaFile(PolymorphicTrackedLive):
+class Media(PolymorphicTrackedLive):
     """
     Medios. Estos pueden ser enlaces, fotos, videos.
 
@@ -88,28 +90,57 @@ class MediaFile(PolymorphicTrackedLive):
           accesible por el usuario.
     """
 
+    # Ownership
     uploaded_by = models.ForeignKey(User, null=False, blank=False)
+
+    # Info
     title = models.CharField(max_length=100, null=False, blank=False)
+    details = models.TextField(max_length=1023, null=False, blank=True)
     categories = models.ManyToManyField(Tag, related_name='media')
-    status = models.CharField(max_length=10, choices=MF_STATUSES, null=False, blank=False)
+
+    # Administration
+    status = models.CharField(max_length=10, choices=MF_STATUSES, null=False, blank=False,
+                              default=MF_STATUSES_AVAILABLE)
     inspection_notes = models.TextField(max_length=2**24, null=True, blank=True)
+
+    def is_trusted(self):
+        """
+        Indica que el medio en cuestión es confiable. Esto implica que tendremos la
+          garantía de que no hay porno infantil ni nada raro. Esto solamente es válido
+          para medios externos o albums.
+
+        En este sentido, no importa qué tanto desconfiemos de lo que sube un usuario,
+          si esta función devuelve True, vamos a confiar en este contenido.
+        """
+
+        return True
+
+    def save(self, *args, **kwargs):
+        """
+        Al guardar un nuevo registro, puede que nos vayamos por pedir revisión, o no.
+          Esto si es que el mediafile es nuevo.
+        """
+
+        if self.uploaded_by and self.pk is None:
+            self.status = MF_STATUSES_ON_REVIEW if self.uploaded_by.upload_requires_review() else MF_STATUSES_AVAILABLE
+        return super(Media, self).save(*args, **kwargs)
 
     def description(self):
         return _('(Unknown media file type)')
 
 
-class MediaFileHistory(TrackedLive):
+class MediaHistory(TrackedLive):
     """
     Historia de cambios sobre un Media File, y motivos.
     """
 
     changed_by = models.ForeignKey(User, null=False, blank=False)
-    media_file = models.ForeignKey(MediaFile, null=False, blank=False)
+    media_file = models.ForeignKey(Media, null=False, blank=False)
     status = models.CharField(max_length=10, choices=MF_STATUSES, null=False, blank=False)
     details = models.TextField(max_length=2**15, null=True, blank=True)
 
 
-class Image(MediaFile):
+class Image(Media):
     """
     Una foto, que será alojada por nosotros.
     Inicialmente el almacenamiento será en nuestro sitio web, pero con el tiempo nos pasaremos a Google Cloud Storage.
@@ -117,11 +148,19 @@ class Image(MediaFile):
 
     file = models.ImageField(upload_to='images', null=False, blank=False)
 
+    def is_trusted(self):
+        """
+        Las imágenes no son medios de confianza automáticamente. Devolviendo False, nosotros hacemos que
+          este contenido pueda ser demorado si desconfiamos del usuario.
+        """
+
+        return False
+
     def description(self):
         return mark_safe(_('Image - <a href="%s">see</a>') % self.file.url)
 
 
-class Embed(MediaFile):
+class Embed(Media):
     """
     Material embebido de otros sitios (como redtube y similares).
     """
@@ -135,7 +174,7 @@ class Embed(MediaFile):
         :return: The appropriate HTML.
         """
 
-        return AVAILABLE_EMBEDS_ENGINES[self.embed].render(self.content)
+        return AVAILABLE_EMBEDS_ENGINES[self.engine].render(self.content)
 
     def description(self):
         """
@@ -143,4 +182,17 @@ class Embed(MediaFile):
         :return: The appropriate description.
         """
 
-        return AVAILABLE_EMBEDS_ENGINES[self.embed].description(self.content)
+        return AVAILABLE_EMBEDS_ENGINES[self.engine].description(self.content)
+
+
+MAX_ALBUM_IMAGES = 12
+class Album(Media):
+    """
+    Un album puede tener cualquier cosa en su interior, excepto otro album.
+    """
+
+    children = models.ManyToManyField(Media, related_name='parents')
+
+    def clean(self):
+        if self.children.instance_of(Album):
+            raise ValidationError(_('An album cannot contain other albums'))
