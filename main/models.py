@@ -55,11 +55,13 @@ class Tag(TrackedLive):
 
 MF_STATUSES_ON_REVIEW = 'on_review'
 MF_STATUSES_AVAILABLE = 'available'
+MF_STATUSES_ON_HOLD = 'on_hold'
+MF_STATUSES_BANNED = 'banned'
 MF_STATUSES = (
     (MF_STATUSES_ON_REVIEW, _('On Review')),
     (MF_STATUSES_AVAILABLE, _('Available')),
-    ('on_hold', _('On Hold / Reported')),
-    ('banned', _('Banned'))
+    (MF_STATUSES_ON_HOLD, _('On Hold / Reported')),
+    (MF_STATUSES_BANNED, _('Banned'))
 )
 
 
@@ -96,7 +98,7 @@ class Media(PolymorphicTrackedLive):
     # Info
     title = models.CharField(max_length=100, null=False, blank=False)
     details = models.TextField(max_length=1023, null=False, blank=True)
-    categories = models.ManyToManyField(Tag, related_name='media')
+    tags = models.ManyToManyField(Tag, related_name='media')
 
     # Administration
     status = models.CharField(max_length=10, choices=MF_STATUSES, null=False, blank=False,
@@ -191,8 +193,27 @@ class Album(Media):
     Un album puede tener cualquier cosa en su interior, excepto otro album.
     """
 
-    children = models.ManyToManyField(Media, related_name='parents')
+
+class AlbumEntry(TrackedLive):
+    """
+    Entrada dentro de un album. Guarda elemento, posicion, y álbum.
+    """
+
+    sequence = models.PositiveSmallIntegerField(null=False)
+    album = models.ForeignKey(Album, null=False, blank=False, related_name='entries')
+    element = models.ForeignKey(Media, null=False, blank=False, related_name='entries')
 
     def clean(self):
-        if self.children.instance_of(Album):
+        if isinstance(self.element, Album):
             raise ValidationError(_('An album cannot contain other albums'))
+
+        if self.element.uploaded_by != self.album.uploaded_by:
+            raise ValidationError(_('An album can only contain elements from the same owner'))
+
+        if self.sequence >= MAX_ALBUM_IMAGES:
+            raise ValidationError(_('An album element cannot be at position %d since it would go beyond '
+                                    'the maximum') % self.sequence)
+
+    class Meta:
+        ordering = ('album', 'sequence')
+        unique_together = (('album', 'sequence'), ('album', 'element'))
