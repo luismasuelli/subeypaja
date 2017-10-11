@@ -38,28 +38,40 @@ class MediaAdmin(PolymorphicParentModelAdmin):
         return ', '.join([tag.name for tag in obj.categories.all()])
     serialized_categories.short_description = _(u'Categories')
 
-    class ImageAdmin(PolymorphicChildModelAdmin):
-
-        base_model = models.Media
-
-    class EmbedAdmin(PolymorphicChildModelAdmin):
-
-        base_model = models.Media
-
-    class AlbumAdmin(PolymorphicChildModelAdmin):
-
-        base_model = models.Media
-
     # TODO logic for adding a new History when saving the object.
     # TODO this includes a distinct form with an additional field.
     # TODO also deleting the inspection notes field in the Media model.
 
-    def get_child_models(self):
-        return [
-            (models.Image, self.ImageAdmin),
-            (models.Embed, self.EmbedAdmin),
-            (models.Album, self.AlbumAdmin)
-        ]
+    child_models = (models.Image, models.Embed, models.Album)
+
+
+class PolymorphicMediaChildModelAdmin(PolymorphicChildModelAdmin):
+
+    fieldsets = (
+        (_('Life Cycle'), {'fields': (('uploaded_by', 'status'),)}),
+        (_('Details'), {'fields': ('title', ('details', 'tags'))}),
+        (_('Internal'), {'fields': ('inspection_notes',)})
+    )
+    base_model = models.Media
+
+
+class ImageAdmin(PolymorphicMediaChildModelAdmin):
+
+    fieldsets = PolymorphicMediaChildModelAdmin.fieldsets + (
+        (_('Content'), {'fields': (('file',),)}),
+    )
+
+
+class EmbedAdmin(PolymorphicMediaChildModelAdmin):
+
+    fieldsets = PolymorphicMediaChildModelAdmin.fieldsets + (
+        (_('Content'), {'fields': (('engine', 'content'),)}),
+    )
+
+
+class AlbumAdmin(PolymorphicMediaChildModelAdmin):
+
+    pass
 
 
 class TagAdmin(admin.ModelAdmin):
@@ -71,4 +83,7 @@ class TagAdmin(admin.ModelAdmin):
 
 admin.site.register(models.User, UserAdmin)
 admin.site.register(models.Media, MediaAdmin)
+admin.site.register(models.Image, ImageAdmin)
+admin.site.register(models.Embed, EmbedAdmin)
+admin.site.register(models.Album, AlbumAdmin)
 admin.site.register(models.Tag, TagAdmin)

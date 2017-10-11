@@ -188,6 +188,8 @@ class Embed(Media):
 
 
 MAX_ALBUM_IMAGES = 12
+
+
 class Album(Media):
     """
     Un album puede tener cualquier cosa en su interior, excepto otro album.
