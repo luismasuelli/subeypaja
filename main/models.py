@@ -200,8 +200,8 @@ class AlbumEntry(TrackedLive):
     """
 
     sequence = models.PositiveSmallIntegerField(null=False)
-    album = models.ForeignKey(Album, null=False, blank=False, related_name='entries')
-    element = models.ForeignKey(Media, null=False, blank=False, related_name='entries')
+    album = models.ForeignKey(Album, null=False, blank=False, related_name='media_entries')
+    element = models.ForeignKey(Media, null=False, blank=False, related_name='album_entries')
 
     def clean(self):
         if isinstance(self.element, Album):
