@@ -58,7 +58,7 @@ class PolymorphicMediaChildModelAdmin(PolymorphicChildModelAdmin):
 class ImageAdmin(PolymorphicMediaChildModelAdmin):
 
     fieldsets = PolymorphicMediaChildModelAdmin.fieldsets + (
-        (_('Content'), {'fields': (('file',),)}),
+        (_('Content'), {'fields': ('file',)}),
     )
 
 
