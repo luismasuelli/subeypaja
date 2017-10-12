@@ -15,11 +15,28 @@ class MediaAdmin(PolymorphicParentModelAdmin):
 
     base_model = models.Media
     polymorphic_list = True
-    list_display = ['created_on', 'title', 'uploaded_by', 'status', 'details', 'serialized_categories']
+    list_display = ['created_on', 'title', 'uploaded_by', 'status', 'details', 'serialized_tags']
     list_display_links = ['title']
     search_fields = ['uploaded_by__username', 'title', 'details']
 
+    def serialized_tags(self, obj):
+        return ', '.join([tag.name for tag in obj.tags.all()])
+    serialized_tags.short_description = _(u'Tags')
+
+    child_models = (models.Image, models.Embed, models.Album)
+
+
+class MediaChildAdmin(PolymorphicChildModelAdmin):
+
+    fieldsets = (
+        (_('Life Cycle'), {'fields': (('uploaded_by', 'status'),)}),
+        (_('Details'), {'fields': ('title', 'details', 'tags')}),
+        (_('Internal'), {'fields': ('inspection_notes',)})
+    )
+    base_model = models.Media
+
     class MediaHistoryInlineAdmin(admin.TabularInline):
+        fk_name = 'media_file'
         model = models.MediaHistory
         fields = ('created_on', 'changed_by', 'status', 'details')
         readonly_fields = ('created_on', 'changed_by', 'status', 'details')
@@ -28,49 +45,39 @@ class MediaAdmin(PolymorphicParentModelAdmin):
             return False
 
         def has_change_permission(self, request, obj=None):
-            return False
+            return True
 
         def has_delete_permission(self, request, obj=None):
             return False
 
     inlines = [MediaHistoryInlineAdmin]
 
-    def serialized_categories(self, obj):
-        return ', '.join([tag.name for tag in obj.categories.all()])
-    serialized_categories.short_description = _(u'Categories')
+    def save_model(self, request, obj, form, change):
+        """
+        Creates an instance of history if status is changed or the obj is just created
+        """
 
-    # TODO logic for adding a new History when saving the object.
-    # TODO this includes a distinct form with an additional field.
-    # TODO also deleting the inspection notes field in the Media model.
-
-    child_models = (models.Image, models.Embed, models.Album)
-
-
-class PolymorphicMediaChildModelAdmin(PolymorphicChildModelAdmin):
-
-    fieldsets = (
-        (_('Life Cycle'), {'fields': (('uploaded_by', 'status'),)}),
-        (_('Details'), {'fields': ('title', ('details', 'tags'))}),
-        (_('Internal'), {'fields': ('inspection_notes',)})
-    )
-    base_model = models.Media
+        notes = obj.inspection_notes
+        super(MediaChildAdmin, self).save_model(request, obj, form, change)
+        if not change or 'status' in form.changed_data:
+            obj.histories.create(changed_by=request.user, details=notes, status=obj.status)
 
 
-class ImageAdmin(PolymorphicMediaChildModelAdmin):
+class ImageAdmin(MediaChildAdmin):
 
-    fieldsets = PolymorphicMediaChildModelAdmin.fieldsets + (
+    fieldsets = MediaChildAdmin.fieldsets + (
         (_('Content'), {'fields': ('file',)}),
     )
 
 
-class EmbedAdmin(PolymorphicMediaChildModelAdmin):
+class EmbedAdmin(MediaChildAdmin):
 
-    fieldsets = PolymorphicMediaChildModelAdmin.fieldsets + (
+    fieldsets = MediaChildAdmin.fieldsets + (
         (_('Content'), {'fields': (('engine', 'content'),)}),
     )
 
 
-class AlbumAdmin(PolymorphicMediaChildModelAdmin):
+class AlbumAdmin(MediaChildAdmin):
 
     pass
 

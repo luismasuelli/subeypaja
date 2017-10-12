@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import formats
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from grimoire.django.tracked.models import TrackedLive
@@ -65,6 +67,7 @@ MF_STATUSES = (
 )
 
 
+@python_2_unicode_compatible
 class Media(PolymorphicTrackedLive):
     """
     Medios. Estos pueden ser enlaces, fotos, videos.
@@ -130,16 +133,30 @@ class Media(PolymorphicTrackedLive):
     def description(self):
         return _('(Unknown media file type)')
 
+    def __str__(self):
+        return _('%s[%s] - %s') % (self.uploaded_by.username, self.pk, self.title.strip())
 
+
+@python_2_unicode_compatible
 class MediaHistory(TrackedLive):
     """
     Historia de cambios sobre un Media File, y motivos.
     """
 
     changed_by = models.ForeignKey(User, null=False, blank=False)
-    media_file = models.ForeignKey(Media, null=False, blank=False)
+    media_file = models.ForeignKey(Media, null=False, blank=False, related_name='histories')
     status = models.CharField(max_length=10, choices=MF_STATUSES, null=False, blank=False)
     details = models.TextField(max_length=2**15, null=True, blank=True)
+
+    def __str__(self):
+        return "History by %s on %s moving media status to: %s" % (
+            self.changed_by.username, formats.localize(timezone.template_localtime(self.created_on)),
+            self.get_status_display()
+        )
+
+    class Meta:
+        verbose_name = _('Media File History')
+        verbose_name_plural = _('Media File Histories')
 
 
 class Image(Media):
