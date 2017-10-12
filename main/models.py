@@ -212,7 +212,7 @@ class Album(Media):
     Un album puede tener cualquier cosa en su interior, excepto otro album.
     """
 
-
+@python_2_unicode_compatible
 class AlbumEntry(TrackedLive):
     """
     Entrada dentro de un album. Guarda elemento, posicion, y álbum.
@@ -232,6 +232,9 @@ class AlbumEntry(TrackedLive):
         if self.sequence >= MAX_ALBUM_IMAGES:
             raise ValidationError(_('An album element cannot be at position %d since it would go beyond '
                                     'the maximum') % self.sequence)
+
+    def __str__(self):
+        return "album[%s] - content[%s]" % (self.album, self.element)
 
     class Meta:
         ordering = ('album', 'sequence')

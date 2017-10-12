@@ -79,7 +79,13 @@ class EmbedAdmin(MediaChildAdmin):
 
 class AlbumAdmin(MediaChildAdmin):
 
-    pass
+    class AlbumEntryInline(admin.TabularInline):
+        fk_name = 'album'
+        model = models.AlbumEntry
+        fields = ('created_on', 'sequence', 'element')
+        readonly_fields = ('created_on',)
+
+    inlines = [AlbumEntryInline] + MediaChildAdmin.inlines
 
 
 class TagAdmin(admin.ModelAdmin):
