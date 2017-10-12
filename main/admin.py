@@ -15,8 +15,9 @@ class MediaAdmin(PolymorphicParentModelAdmin):
 
     base_model = models.Media
     polymorphic_list = True
-    list_display = ['created_on', 'title', 'uploaded_by', 'status', 'description', 'serialized_categories']
+    list_display = ['created_on', 'title', 'uploaded_by', 'status', 'details', 'serialized_categories']
     list_display_links = ['title']
+    search_fields = ['uploaded_by__username', 'title', 'details']
 
     class MediaHistoryInlineAdmin(admin.TabularInline):
         model = models.MediaHistory
