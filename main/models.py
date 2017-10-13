@@ -102,6 +102,9 @@ class Media(PolymorphicTrackedLive):
     title = models.CharField(max_length=100, null=False, blank=False)
     details = models.TextField(max_length=1023, null=False, blank=True)
     tags = models.ManyToManyField(Tag, related_name='media')
+    # TODO Add `published` field, and also a manager/method for that.
+    # TODO Non-published elements are only visible to their creator.
+    # TODO Add it also in the admin.
 
     # Administration
     status = models.CharField(max_length=10, choices=MF_STATUSES, null=False, blank=False,
