@@ -1,0 +1,29 @@
+Aplicaciones involucradas
+=========================
+
+  1. Backend API (atiende requests con movil y/o con token)
+  2. Front-end Web (log-in con sesion)
+  3. Front-end Movil (og-in con token)
+
+1. Back-end API
+===============
+
+1.1. Puntos públicos
+--------------------
+
+Estos no tienen ninguna autenticación. Los puede acceder cualquiera tanto desde app como desde web.
+
+1.2. Puntos privados
+--------------------
+
+Estos puntos tienen autenticación. La autenticación puede ser usuario logueado desde app como desde web.
+
+2. Front-end Web
+================
+
+(Hacer su archivo)
+
+3. Front-end Movil
+==================
+
+(Hacer su archivo)
